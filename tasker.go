@@ -24,8 +24,8 @@ type taskRst struct {
 
 type Tasker struct {
 	tasks        []Task
-	rstCh        chan taskRst
-	effectiveRst taskRst
+	rstCh        chan *taskRst
+	effectiveRst *taskRst
 	maxPriority  int
 	taskCount    int
 	err          error
@@ -54,7 +54,7 @@ func (t *Tasker) Process(c context.Context) (any, error) {
 			select {
 			case <-ctx.Done():
 				return
-			case t.rstCh <- taskRst{result: rst, err: err, priority: tsk.Priority()}:
+			case t.rstCh <- &taskRst{result: rst, err: err, priority: tsk.Priority()}:
 			}
 		}(ctx, task)
 	}
@@ -72,6 +72,11 @@ func (t *Tasker) Process(c context.Context) (any, error) {
 
 		if rst.priority == t.maxPriority {
 			return rst.result, nil
+		}
+
+		if t.effectiveRst == nil {
+			t.effectiveRst = rst
+			continue
 		}
 
 		if rst.priority > t.effectiveRst.priority {
@@ -92,7 +97,7 @@ func (t *Tasker) Process(c context.Context) (any, error) {
 
 func NewTasker() *Tasker {
 	return &Tasker{
-		rstCh:       make(chan taskRst),
+		rstCh:       make(chan *taskRst),
 		maxPriority: math.MinInt64, // Initialize maxPriority to the smallest possible int value
 	}
 }
