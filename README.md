@@ -8,7 +8,7 @@ In the context of the Priority Task Processor, a "Task" is defined as any operat
 
 Task processing involves two major steps:  
 1. **Adding Tasks**: Tasks to be executed are added into the Priority Task Processor using the AddTask method. Each task is an instance of a struct that implements the Task interface.
-2. **Processing Tasks**: The Process function executes all tasks concurrently and retrieves the result from the task with the highest priority. If multiple tasks share the same highest priority, it will return the first result.  
+2. **Processing Tasks**: The ProcessTasks function executes all tasks concurrently and retrieves the result from the task with the highest priority. If multiple tasks share the same highest priority, it will return the first result.  
 ## How to Use
 Here's a basic example of how to use the Priority Task Processor:  
 1. Implement the Task interface in your task struct.
