@@ -33,7 +33,6 @@ type TaskController struct {
 	reportCh        chan *TaskReport
 	effectiveReport *TaskReport
 	priorityList    PriorityList
-	err             error
 }
 
 func (t *TaskController) AddTask(task Task) {
@@ -41,11 +40,8 @@ func (t *TaskController) AddTask(task Task) {
 	t.priorityList.Add(task.Priority())
 }
 
-func (t *TaskController) ProcessTasks(c context.Context) (any, error) {
+func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
 	t.priorityList.Sort()
-
-	ctx, cancel := context.WithCancel(c)
-	defer cancel()
 
 	var wg sync.WaitGroup
 	for _, task := range t.tasks {
@@ -53,12 +49,17 @@ func (t *TaskController) ProcessTasks(c context.Context) (any, error) {
 		go func(ctx context.Context, tsk Task) {
 			defer wg.Done()
 
-			rst, err := tsk.PerformTask()
+			trCh := make(chan *TaskReport, 1)
+			go func() {
+				rst, err := tsk.PerformTask()
+				trCh <- &TaskReport{result: rst, err: err, priority: tsk.Priority()}
+			}()
 
 			select {
 			case <-ctx.Done():
 				return
-			case t.reportCh <- &TaskReport{result: rst, err: err, priority: tsk.Priority()}:
+			case result := <-trCh:
+				t.reportCh <- result
 			}
 		}(ctx, task)
 	}
@@ -95,7 +96,7 @@ func (t *TaskController) ProcessTasks(c context.Context) (any, error) {
 		}
 	}
 
-	if t.effectiveReport.result != nil {
+	if t.effectiveReport != nil && t.effectiveReport.result != nil {
 		return t.effectiveReport.result, nil
 	}
 
