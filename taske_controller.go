@@ -49,16 +49,10 @@ func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
 		go func(ctx context.Context, tsk Task) {
 			defer wg.Done()
 
-			trCh := make(chan *TaskReport, 1)
-			go func() {
-				rst, err := tsk.PerformTask()
-				trCh <- &TaskReport{result: rst, err: err, priority: tsk.Priority()}
-			}()
-
 			select {
 			case <-ctx.Done():
 				return
-			case result := <-trCh:
+			case result := <-t.do(tsk):
 				t.reportCh <- result
 			}
 		}(ctx, task)
@@ -105,6 +99,16 @@ func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
 	}
 
 	return nil, ErrNoResult
+}
+
+func (t *TaskController) do(tsk Task) <-chan *TaskReport {
+	trCh := make(chan *TaskReport, 1)
+	go func() {
+		rst, err := tsk.PerformTask()
+		trCh <- &TaskReport{result: rst, err: err, priority: tsk.Priority()}
+	}()
+
+	return trCh
 }
 
 type Option func(*TaskController)
