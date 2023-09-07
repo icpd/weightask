@@ -91,7 +91,7 @@ func TestTasker_ProcessTasksWithTimeoutCtx(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tc := NewTaskController()
+			tc := NewTaskController(WithPriorityList(new(PrioritySlice)))
 			for _, task := range tt.tasks {
 				tc.AddTask(task)
 			}
