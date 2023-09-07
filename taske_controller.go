@@ -33,7 +33,6 @@ type TaskController struct {
 	reportCh        chan *TaskReport
 	effectiveReport *TaskReport
 	priorityList    PriorityList
-	wg              sync.WaitGroup
 }
 
 func (t *TaskController) AddTask(task Task) {
@@ -44,13 +43,23 @@ func (t *TaskController) AddTask(task Task) {
 func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
 	t.priorityList.Sort()
 
+	var wg sync.WaitGroup
 	for _, task := range t.tasks {
-		t.wg.Add(1)
-		go t.do(ctx, task)
+		wg.Add(1)
+		go func(ctx context.Context, tsk Task) {
+			defer wg.Done()
+
+			select {
+			case <-ctx.Done():
+				return
+			case result := <-t.do(tsk):
+				t.reportCh <- result
+			}
+		}(ctx, task)
 	}
 
 	go func() {
-		t.wg.Wait()
+		wg.Wait()
 		close(t.reportCh)
 	}()
 
@@ -92,21 +101,14 @@ func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
 	return nil, ErrNoResult
 }
 
-func (t *TaskController) do(ctx context.Context, tsk Task) {
-	defer t.wg.Done()
-
+func (t *TaskController) do(tsk Task) <-chan *TaskReport {
 	trCh := make(chan *TaskReport, 1)
 	go func() {
 		rst, err := tsk.PerformTask()
 		trCh <- &TaskReport{result: rst, err: err, priority: tsk.Priority()}
 	}()
 
-	select {
-	case <-ctx.Done():
-		return
-	case result := <-trCh:
-		t.reportCh <- result
-	}
+	return trCh
 }
 
 type Option func(*TaskController)
