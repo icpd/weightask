@@ -12,7 +12,7 @@ type Task interface {
 	// Priority returns the priority value of the task
 	Priority() int
 	// PerformTask Execute the task
-	PerformTask() (any, error)
+	PerformTask(ctx context.Context) (any, error)
 }
 
 type PriorityList interface {
@@ -52,7 +52,7 @@ func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
 			select {
 			case <-ctx.Done():
 				return
-			case result := <-t.do(tsk):
+			case result := <-t.do(ctx, tsk):
 				t.reportCh <- result
 			}
 		}(ctx, task)
@@ -101,10 +101,10 @@ func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
 	return nil, ErrNoResult
 }
 
-func (t *TaskController) do(tsk Task) <-chan *TaskReport {
+func (t *TaskController) do(ctx context.Context, tsk Task) <-chan *TaskReport {
 	trCh := make(chan *TaskReport, 1)
 	go func() {
-		rst, err := tsk.PerformTask()
+		rst, err := tsk.PerformTask(ctx)
 		trCh <- &TaskReport{result: rst, err: err, priority: tsk.Priority()}
 	}()
 
