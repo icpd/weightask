@@ -37,14 +37,13 @@ type TaskController struct {
 
 func (t *TaskController) AddTask(task Task) {
 	t.tasks = append(t.tasks, task)
-	t.priorityList.Add(task.Priority())
 }
 
 func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
-	t.priorityList.Sort()
-
 	var wg sync.WaitGroup
 	for _, task := range t.tasks {
+		t.priorityList.Add(task.Priority())
+
 		wg.Add(1)
 		go func(ctx context.Context, tsk Task) {
 			defer wg.Done()
@@ -63,6 +62,7 @@ func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
 		close(t.reportCh)
 	}()
 
+	t.priorityList.Sort()
 	for rst := range t.reportCh {
 		if rst == nil {
 			continue
