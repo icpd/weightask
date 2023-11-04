@@ -16,7 +16,7 @@ func (m MockTask) Priority() int {
 	return m.priority
 }
 
-func (m MockTask) PerformTask() (any, error) {
+func (m MockTask) PerformTask(_ context.Context) (any, error) {
 	return m.work()
 }
 
