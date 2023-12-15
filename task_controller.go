@@ -1,4 +1,4 @@
-package priortask
+package weightask
 
 import (
 	"context"
@@ -9,30 +9,30 @@ import (
 var ErrNoResult = errors.New("no result")
 
 type Task interface {
-	// Priority returns the priority value of the task
-	Priority() int
+	// Weight returns the weight value of the task
+	Weight() int
 	// PerformTask Execute the task
 	PerformTask(ctx context.Context) (any, error)
 }
 
-type PriorityList interface {
+type WeightList interface {
 	Sort()
 	Add(val int)
 	Remove(val int)
-	GetTopPriority() int
+	GetTopWeight() int
 }
 
 type TaskReport struct {
-	priority int
-	result   any
-	err      error
+	weight int
+	result any
+	err    error
 }
 
 type TaskController struct {
 	tasks           []Task
 	reportCh        chan *TaskReport
 	effectiveReport *TaskReport
-	priorityList    PriorityList
+	weightList      WeightList
 }
 
 func (t *TaskController) AddTask(task Task) {
@@ -42,7 +42,7 @@ func (t *TaskController) AddTask(task Task) {
 func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
 	var wg sync.WaitGroup
 	for _, task := range t.tasks {
-		t.priorityList.Add(task.Priority())
+		t.weightList.Add(task.Weight())
 
 		wg.Add(1)
 		go func(ctx context.Context, tsk Task) {
@@ -62,18 +62,18 @@ func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
 		close(t.reportCh)
 	}()
 
-	t.priorityList.Sort()
+	t.weightList.Sort()
 	for rst := range t.reportCh {
 		if rst == nil {
 			continue
 		}
 
 		if rst.err != nil {
-			t.priorityList.Remove(rst.priority)
+			t.weightList.Remove(rst.weight)
 			continue
 		}
 
-		if rst.priority == t.priorityList.GetTopPriority() {
+		if rst.weight == t.weightList.GetTopWeight() {
 			return rst.result, nil
 		}
 
@@ -82,11 +82,11 @@ func (t *TaskController) ProcessTasks(ctx context.Context) (any, error) {
 			continue
 		}
 
-		if rst.priority > t.effectiveReport.priority {
-			t.priorityList.Remove(t.effectiveReport.priority)
+		if rst.weight > t.effectiveReport.weight {
+			t.weightList.Remove(t.effectiveReport.weight)
 			t.effectiveReport = rst
 		} else {
-			t.priorityList.Remove(rst.priority)
+			t.weightList.Remove(rst.weight)
 		}
 	}
 
@@ -105,7 +105,7 @@ func (t *TaskController) do(ctx context.Context, tsk Task) <-chan *TaskReport {
 	trCh := make(chan *TaskReport, 1)
 	go func() {
 		rst, err := tsk.PerformTask(ctx)
-		trCh <- &TaskReport{result: rst, err: err, priority: tsk.Priority()}
+		trCh <- &TaskReport{result: rst, err: err, weight: tsk.Weight()}
 	}()
 
 	return trCh
@@ -113,9 +113,9 @@ func (t *TaskController) do(ctx context.Context, tsk Task) <-chan *TaskReport {
 
 type Option func(*TaskController)
 
-func WithPriorityList(pl PriorityList) Option {
+func WithWeightList(pl WeightList) Option {
 	return func(t *TaskController) {
-		t.priorityList = pl
+		t.weightList = pl
 	}
 }
 
@@ -128,8 +128,8 @@ func NewTaskController(opts ...Option) *TaskController {
 		opt(t)
 	}
 
-	if t.priorityList == nil {
-		t.priorityList = new(PrioritySlice)
+	if t.weightList == nil {
+		t.weightList = new(WeightSlice)
 	}
 
 	return t

@@ -1,4 +1,4 @@
-module github.com/icpd/priortask
+module github.com/icpd/weightask
 
 go 1.20
 
