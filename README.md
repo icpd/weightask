@@ -27,16 +27,16 @@ import (
 )
 
 type MyTask struct {
-	p int
-	v string
+	weight int
+	v      string
 }
 
 func (t MyTask) Weight() int {
-	return t.p
+	return t.weight
 }
 
 func (t MyTask) PerformTask() (any, error) {
-	time.Sleep(time.Second * time.Duration(t.p))
+	time.Sleep(time.Second * time.Duration(t.weight))
 	return t.v, nil
 }
 
@@ -44,9 +44,9 @@ func main() {
 	tc := weightask.NewTaskController()
 
 	// add tasks
-	tc.AddTask(&MyTask{p: 1, v: "task 1"})
-	tc.AddTask(&MyTask{p: 2, v: "task 2"})
-	tc.AddTask(&MyTask{p: 3, v: "task 3"})
+	tc.AddTask(&MyTask{weight: 1, v: "task 1"})
+	tc.AddTask(&MyTask{weight: 2, v: "task 2"})
+	tc.AddTask(&MyTask{weight: 3, v: "task 3"})
 
 	// process tasks
 	res, err := tc.ProcessTasks(context.Background())
