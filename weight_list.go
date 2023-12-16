@@ -1,18 +1,18 @@
-package priortask
+package weightask
 
 import "sort"
 
-type PrioritySlice []int
+type WeightSlice []int
 
-func (p *PrioritySlice) Sort() {
+func (p *WeightSlice) Sort() {
 	sort.Sort(sort.Reverse(sort.IntSlice(*p)))
 }
 
-func (p *PrioritySlice) Add(val int) {
+func (p *WeightSlice) Add(val int) {
 	*p = append(*p, val)
 }
 
-func (p *PrioritySlice) Remove(val int) {
+func (p *WeightSlice) Remove(val int) {
 	index := -1
 	for i, v := range *p {
 		if v == val {
@@ -26,6 +26,6 @@ func (p *PrioritySlice) Remove(val int) {
 	}
 }
 
-func (p *PrioritySlice) GetTopPriority() int {
+func (p *WeightSlice) GetTopWeight() int {
 	return (*p)[0]
 }
